@@ -1,30 +1,25 @@
 #!/usr/bin/env node
-import "source-map-support/register";
 import * as cdk from 'aws-cdk-lib';
-import { ProjectStack } from '../lib/project-stack';
-import { EC2Stack } from "../lib/ec2-stack";
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import { RDSStack } from '../lib/rds-stack';
 
 const app = new cdk.App();
-const vpcStack = new ProjectStack(app, 'ProjectStack', {
 
+// Create a basic VPC (without a lot of resources for cost minimization)
+const vpcStack = new ec2.Vpc(app, 'MyVpc', {
+  maxAzs: 1, // Use just one AZ
+  natGateways: 0, // No NAT Gateways to save costs
+  subnetConfiguration: [
+    {
+      cidrMask: 24,
+      name: 'PrivateSubnet',
+      subnetType: ec2.SubnetType.PRIVATE_ISOLATED, // Keep it private and isolated
+    },
+  ],
 });
 
-new EC2Stack{app, "MyEC2Stack", {
-  vpc: vpcStack.vpc
-}}
-
-app.synth()
-
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
-
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
-
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
-
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+// Create the RDS stack and pass the VPC
+new RDSStack(app, 'RDSStack', {
+  vpc: vpcStack,
+  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+});
