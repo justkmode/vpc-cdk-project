@@ -16,31 +16,37 @@ interface RDSStackProps extends cdk.StackProps {
 // Create the RDS Stack Class
 // Define the RDSStack class and pass the VPC from the ProjectStack:
 
+
 export class RDSStack extends cdk.Stack {
     constructor(scope: Construct, id: string, props: RDSStackProps) {
       super(scope, id, props);
   
-      const dbInstance = new rds.DatabaseInstance(this, 'RDSInstance', {
-        engine: rds.DatabaseInstanceEngine.mysql({
-          version: rds.MysqlEngineVersion.VER_8_0,
-        }),
-        instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+      // Ensure VPC is defined
+      if (!props.vpc) {
+        throw new Error("VPC is undefined. Ensure you pass a valid VPC.");
+      }
+  
+      // Create a subnet group for the RDS instance
+      const subnetGroup = new rds.SubnetGroup(this, "RdsSubnetGroup", {
         vpc: props.vpc,
-        vpcSubnets: {
-          subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
-        },
-        allocatedStorage: 20,
-        maxAllocatedStorage: 30,
-        deletionProtection: false,
-        storageType: rds.StorageType.GP2,
-        multiAz: false,
-        publiclyAccessible: false,
+        description: "Subnet group for RDS instance",
         removalPolicy: cdk.RemovalPolicy.DESTROY,
       });
   
-      new cdk.CfnOutput(this, 'DBEndpoint', {
-        value: dbInstance.dbInstanceEndpointAddress,
-        description: 'The endpoint of the RDS instance',
+      // Create the RDS instance
+      new rds.DatabaseInstance(this, "MyRDSInstance", {
+        engine: rds.DatabaseInstanceEngine.mysql({ version: rds.MysqlEngineVersion.VER_8_0 }),
+        instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+        vpc: props.vpc,
+        vpcSubnets: props.vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }),
+        multiAz: false,
+        allocatedStorage: 20,
+        maxAllocatedStorage: 100,
+        storageType: rds.StorageType.GP2,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+        deletionProtection: false,
+        publiclyAccessible: false,
+        subnetGroup: subnetGroup,
       });
     }
   }
