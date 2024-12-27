@@ -10,8 +10,5 @@ const projectStack = new ProjectStack(app, 'ProjectStack');
 
 // Instantiate the RDSStack and pass the VPC from ProjectStack
 new RDSStack(app, 'RDSStack', {
-  vpc: projectStack.vpc,
+  vpc: projectStack.vpc, // Pass the VPC created in the ProjectStack
 });
-
-// Export the VPC from project-stack.ts
-// Update your ProjectStack to export the VPC so it can be used in RDSStack:

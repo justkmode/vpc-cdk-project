@@ -8,8 +8,9 @@ export class ProjectStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
-    const vpc = new ec2.Vpc(this, "MyVpc", {
-      maxAzs: 2,
+    // Create the VPC
+    this.vpc = new ec2.Vpc(this, "MyVpc", {
+      maxAzs: 2, // Adjust based on your requirements
       subnetConfiguration: [
         {
           name: "Public",
@@ -24,8 +25,9 @@ export class ProjectStack extends cdk.Stack {
       ],
     });
 
+    // Optional: Output the VPC ID
     new cdk.CfnOutput(this, "VpcId", {
-      value: vpc.vpcId,
+      value: this.vpc.vpcId,
       description: "VPC ID",
     });
   }

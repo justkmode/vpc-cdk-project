@@ -15,10 +15,13 @@ export class RDSStack extends cdk.Stack {
       throw new Error("VPC is undefined. Please provide a valid VPC.");
     }
 
-    // Define a subnet group
+    // Define the subnet group using the correct PRIVATE_ISOLATED subnets from the VPC
     const subnetGroup = new rds.SubnetGroup(this, 'RdsSubnetGroup', {
       description: 'RDS Subnet Group',
       vpc: props.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+      },
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
@@ -28,7 +31,7 @@ export class RDSStack extends cdk.Stack {
       instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
       vpc: props.vpc,
       vpcSubnets: {
-        subnetType: ec2.SubnetType.PRIVATE_ISOLATED, // Adjust based on your VPC configuration
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
       },
       multiAz: false,
       allocatedStorage: 20,
