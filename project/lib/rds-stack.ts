@@ -14,10 +14,22 @@ export class RDSStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: RDSStackProps) {
     super(scope, id, props);
 
-    // Create the RDS instance
-    const dbInstance = new rds.DatabaseInstance(this, 'MyRDSInstance', {
-      engine: rds.DatabaseInstanceEngine.mysql({
-        version: rds.MysqlEngineVersion.VER_8_0, // Use MySQL 8.0 as the database engine
+    // Define a parameter group for PostgreSQL
+    const parameterGroup = new rds.ParameterGroup(this, 'PostgreSQLParameterGroup', {
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_11,
+        }),
+        parameters: {
+          log_min_duration_statement: '1000', // Example: Log queries taking longer than 1 second
+          max_connections: '100', // Example: Custom max connections
+        },
+      });
+  
+
+    // Create the RDS instance with PostgreSQL
+    const rdsInstance = new rds.DatabaseInstance(this, 'PostgreSQLInstance', {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_11, // Use PostgreSQL version 13.7
       }),
       instanceType: ec2.InstanceType.of(
         ec2.InstanceClass.T3, // Use T3 instance type
@@ -31,21 +43,23 @@ export class RDSStack extends cdk.Stack {
       maxAllocatedStorage: 30, // Maximum storage size in GB for scaling
       deletionProtection: false, // Disable deletion protection for the exercise
       publiclyAccessible: false, // Ensure the instance is not publicly accessible
+      backupRetention: cdk.Duration.days(7), // Retain backups for 7 days
+      parameterGroup, // Use the custom parameter group
       removalPolicy: cdk.RemovalPolicy.DESTROY, // Allow the RDS instance to be deleted
       storageEncrypted: true, // Enable encryption for storage
-      credentials: rds.Credentials.fromGeneratedSecret('admin'), // Auto-generate admin credentials
+      credentials: rds.Credentials.fromGeneratedSecret('postgres_user'), // Auto-generate admin credentials
       multiAz: true, // Enable high availability by deploying across multiple AZs
       autoMinorVersionUpgrade: true, // Enable automatic minor version upgrades
     });
 
     // Add tags for easy identification
-    cdk.Tags.of(dbInstance).add('Environment', 'Development');
-    cdk.Tags.of(dbInstance).add('Project', 'MyRDSProject');
+    cdk.Tags.of(rdsInstance).add('Environment', 'Development');
+    cdk.Tags.of(rdsInstance).add('Project', 'MyPostgreSQLProject');
 
     // Output the database endpoint
-    new cdk.CfnOutput(this, 'DatabaseEndpoint', {
-      value: dbInstance.instanceEndpoint.hostname,
-      description: 'The endpoint of the RDS instance',
+    new cdk.CfnOutput(this, 'PostgreSQLEndpoint', {
+      value: rdsInstance.dbInstanceEndpointAddress,
+      description: 'PostgreSQL Database Endpoint',
     });
   }
 }
