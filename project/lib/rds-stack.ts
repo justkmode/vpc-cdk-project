@@ -1,55 +1,65 @@
-// Add Imports
-// In rds-stack.ts, add the necessary imports at the top of the file:
-
+// Import necessary CDK modules
 import * as cdk from 'aws-cdk-lib';
-import * as rds from 'aws-cdk-lib/aws-rds';
-import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import { Construct } from 'constructs';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as rds from 'aws-cdk-lib/aws-rds';
 
-// Define the Stack Props Interface
-// Create an interface to accept the VPC from the ProjectStack:
-
+// Define interface to accept VPC from the VPC stack
 interface RDSStackProps extends cdk.StackProps {
-    vpc: ec2.Vpc;
-  }
-  
-// Create the RDS Stack Class
-// Define the RDSStack class and pass the VPC from the ProjectStack:
+  vpc: ec2.Vpc; // The VPC in which the RDS instance will be created
+}
 
-
+// Define the RDSStack class
 export class RDSStack extends cdk.Stack {
-    constructor(scope: Construct, id: string, props: RDSStackProps) {
-      super(scope, id, props);
-  
-      // Ensure VPC is defined
-      if (!props.vpc) {
-        throw new Error("VPC is undefined. Ensure you pass a valid VPC.");
-      }
-  
-      // Create a subnet group for the RDS instance
-      const subnetGroup = new rds.SubnetGroup(this, "RdsSubnetGroup", {
-        vpc: props.vpc,
-        description: "Subnet group for RDS instance",
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-      });
-  
-      // Create the RDS instance
-      new rds.DatabaseInstance(this, "MyRDSInstance", {
-        engine: rds.DatabaseInstanceEngine.mysql({ version: rds.MysqlEngineVersion.VER_8_0 }),
-        instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
-        vpc: props.vpc,
-        vpcSubnets: props.vpc.selectSubnets({ subnetType: ec2.SubnetType.PRIVATE_ISOLATED }),
-        multiAz: false,
-        allocatedStorage: 20,
-        maxAllocatedStorage: 100,
-        storageType: rds.StorageType.GP2,
-        removalPolicy: cdk.RemovalPolicy.DESTROY,
-        deletionProtection: false,
-        publiclyAccessible: false,
-        subnetGroup: subnetGroup,
-      });
-    }
-  }
+  constructor(scope: Construct, id: string, props: RDSStackProps) {
+    super(scope, id, props);
 
-// Update the bin/project.ts File
-// Update the bin/project.ts file to include the RDSStack and pass the VPC from ProjectStack:
+    // Define a parameter group for PostgreSQL
+    const parameterGroup = new rds.ParameterGroup(this, 'PostgreSQLParameterGroup', {
+        engine: rds.DatabaseInstanceEngine.postgres({
+          version: rds.PostgresEngineVersion.VER_11,
+        }),
+        parameters: {
+          log_min_duration_statement: '1000', // Example: Log queries taking longer than 1 second
+          max_connections: '100', // Example: Custom max connections
+        },
+      });
+  
+
+    // Create the RDS instance with PostgreSQL
+    const rdsInstance = new rds.DatabaseInstance(this, 'PostgreSQLInstance', {
+      engine: rds.DatabaseInstanceEngine.postgres({
+        version: rds.PostgresEngineVersion.VER_11, // Use PostgreSQL version 13.7
+      }),
+      instanceType: ec2.InstanceType.of(
+        ec2.InstanceClass.T3, // Use T3 instance type
+        ec2.InstanceSize.MICRO // Use t3.micro for cost efficiency
+      ),
+      vpc: props.vpc, // Place the RDS instance in the provided VPC
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_ISOLATED, // Use private isolated subnets
+      },
+      allocatedStorage: 20, // Initial storage size in GB
+      maxAllocatedStorage: 30, // Maximum storage size in GB for scaling
+      deletionProtection: false, // Disable deletion protection for the exercise
+      publiclyAccessible: false, // Ensure the instance is not publicly accessible
+      backupRetention: cdk.Duration.days(7), // Retain backups for 7 days
+      parameterGroup, // Use the custom parameter group
+      removalPolicy: cdk.RemovalPolicy.DESTROY, // Allow the RDS instance to be deleted
+      storageEncrypted: true, // Enable encryption for storage
+      credentials: rds.Credentials.fromGeneratedSecret('postgres_user'), // Auto-generate admin credentials
+      multiAz: true, // Enable high availability by deploying across multiple AZs
+      autoMinorVersionUpgrade: true, // Enable automatic minor version upgrades
+    });
+
+    // Add tags for easy identification
+    cdk.Tags.of(rdsInstance).add('Environment', 'Development');
+    cdk.Tags.of(rdsInstance).add('Project', 'MyPostgreSQLProject');
+
+    // Output the database endpoint
+    new cdk.CfnOutput(this, 'PostgreSQLEndpoint', {
+      value: rdsInstance.dbInstanceEndpointAddress,
+      description: 'PostgreSQL Database Endpoint',
+    });
+  }
+}
