@@ -22,6 +22,11 @@ export class ProjectStack extends cdk.Stack {
           subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
           cidrMask: 24,
         },
+        {
+          name: "Database",
+          subnetType: ec2.SubnetType.PRIVATE_ISOLATED, // Keep this private
+          cidrMask: 24,
+        }
       ],
     });
 
