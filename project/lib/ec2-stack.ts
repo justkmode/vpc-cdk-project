@@ -17,15 +17,13 @@ export class EC2Stack extends cdk.Stack {
         const instance = new ec2.Instance(this, 'MyPrivateEC2', {
             vpc: props.vpc,
             vpcSubnets: {
-                subnetType: ec2.SubnetType.PRIVATE_ISOLATED
+                subnetType: ec2.SubnetType.PUBLIC,
             },
             machineImage: new ec2.AmazonLinuxImage({
-                generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
+                generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
             }),
-            instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO)
-
-        })
+            instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
+        });
         
-            cdk.Tags.of(instance).add('Name', 'MyPrivateEC2')
-    }
-}
+        cdk.Tags.of(instance).add('Name', 'MyPrivateEC2');
+    } }
