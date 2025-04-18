@@ -14,10 +14,11 @@ export class EC2Stack extends cdk.Stack {
 
         // EC2 Instance
 
-        const instance = new ec2.Instance(this, 'MyPrivateEC2', {
+        const instance1 = new ec2.Instance(this, 'MyPrivateEC2-AZ1', {
             vpc: props.vpc,
             vpcSubnets: {
-                subnetType: ec2.SubnetType.PUBLIC,
+                subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+                availabilityZones: [props.vpc.availabilityZones[0]]
             },
             machineImage: new ec2.AmazonLinuxImage({
                 generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2,
@@ -25,5 +26,23 @@ export class EC2Stack extends cdk.Stack {
             instanceType: ec2.InstanceType.of(ec2.InstanceClass.T3, ec2.InstanceSize.MICRO),
         });
         
-        cdk.Tags.of(instance).add('Name', 'MyPrivateEC2');
-    } }
+        cdk.Tags.of(instance1).add('Name', 'MyPrivateEC2-AZ1');
+    
+
+    // EC2 Instance 2 in AZ 2
+
+    const instance2 = new ec2.Instance(this, 'MyPrivateEC2-AZ2', {
+        vpc: props.vpc,
+        vpcSubnets: {
+            subnetType: ec2.SubnetType.PRIVATE_ISOLATED,
+            availabilityZones: [props.vpc.availabilityZones[1]]
+        },
+        machineImage: new ec2.AmazonLinuxImage({
+            generation: ec2.AmazonLinuxGeneration.AMAZON_LINUX_2
+        }),
+        instanceType: ec2.InstanceType.of(ec2.InstanceClass.T2, ec2.InstanceSize.MICRO)
+    })
+
+    cdk.Tags.of(instance2).add('Name', 'MyPrivateEC2-AZ2')
+    } 
+}
